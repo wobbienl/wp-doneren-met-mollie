@@ -116,7 +116,7 @@ class Dmm_Admin {
 
         // Hidden
         add_submenu_page(
-            null,
+            '',
             __('Donation', 'doneren-met-mollie'),
             __('Donation', 'doneren-met-mollie'),
             get_option('dmm_rights_donations', DMM_PLUGIN_ROLE),
