@@ -328,7 +328,7 @@ class Dmm_Admin {
                 $donation->dm_amount,
                 $donation->dm_status,
                 $donation->payment_method,
-                $donation->customer_id ? __('Yes', 'doneren-met-mollie') : __('No', 'doneren-met-mollie'),
+                $donation->subscription_id ? __('Yes', 'doneren-met-mollie') : __('No', 'doneren-met-mollie'),
                 $donation->donation_id,
                 $donation->payment_id,
             ));
