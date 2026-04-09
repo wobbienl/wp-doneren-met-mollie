@@ -328,10 +328,21 @@ class Dmm_Start
                     $errors[] = __('Please choose a project', 'doneren-met-mollie');
                 }
 
+                $amount = 0.00;
                 if (empty($_POST['dmm_amount'])) {
                     $errors[] = __('Please choose an amount', 'doneren-met-mollie');
-                } elseif ($_POST['dmm_amount'] < (float) get_option('dmm_minimum_amount', 1)) {
-                    $errors[] = __('The amount is too low, please choose a higher amount', 'doneren-met-mollie');
+                } else {
+                    $amount = str_replace(',', '.', sanitize_text_field($_POST['dmm_amount']));
+
+                    if ( preg_match('/^\d+(\.\d{1,2})?$/', $amount) === FALSE ) {
+                        $errors[] = __('Please choose a valid amount', 'doneren-met-mollie');
+                    } else {
+                        $amount = (float) $amount;
+
+                        if ($amount < (float) get_option('dmm_minimum_amount', 1)) {
+                            $errors[] = __('The amount is too low, please choose a higher amount', 'doneren-met-mollie');
+                        }
+                    }
                 }
 
                 // Hook to validate custom fields
@@ -353,6 +364,31 @@ class Dmm_Start
 					}
 				}
 
+                $method = ! empty($_POST['dmm_method']) ? sanitize_text_field($_POST['dmm_method']) : '';
+                if (empty($errors) && ! empty($method)) {
+                    $recurring = ! empty($_POST['dmm_recurring_interval']) ? sanitize_text_field($_POST['dmm_recurring_interval']) : 'one';
+                    
+                    $methods = $mollie->get('methods', [
+                        'sequenceType' => $recurring === 'one' ? 'oneoff' : 'first',
+                        "amount"       => [
+                            "currency" => sanitize_text_field($_POST['dmm_currency']),
+                            "value"    => number_format($amount, 2, '.', ''),
+                        ],
+                    ]);
+                    
+                    if (
+                        empty($methods)
+                        || empty($methods->count)
+                        || empty($methods->_embedded)
+                        || empty($methods->_embedded->methods)
+                    ) {
+						// NOTE: Possible reasons for no methods are:
+						// - Could not connect to Mollie
+						// - No active payment method that supports the chosen currency, amount and/or recurring
+                        $errors[] = __('The payment method doesn\'t support the chosen amount. Please change the amount or choose another payment method', 'doneren-met-mollie');
+                    }
+                }
+
                 if (!empty($errors)) {
                     echo '<ul>';
                     foreach ($errors as $error) {
@@ -361,7 +397,7 @@ class Dmm_Start
                     echo '</ul><br>';
                 } else {
                     $donation_id = uniqid(rand(1, 99));
-                    $amount      = number_format(str_replace(',', '.', sanitize_text_field($_POST['dmm_amount'])), 2, '.', '');
+                    $amount = number_format($amount, 2, '.', '');
 
                     // Hook to handle POST data for custom fields
                     do_action('dmm_donate_form_posted');
