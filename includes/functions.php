@@ -36,6 +36,29 @@ function dmm_get_currencies($currency = null)
     return $currencies;
 }
 
+/**
+ * Human readable label for a subscription interval.
+ *
+ * @param string $interval Interval as stored by Mollie, e.g. '1 month'.
+ *
+ * @return string Translated label, or the raw interval when it is not one of the
+ *                intervals the donation form offers.
+ * @since 2.11.0
+ */
+function dmm_get_interval_label($interval)
+{
+    switch ($interval) {
+        case '1 month':
+            return __('Monthly', 'doneren-met-mollie');
+        case '3 months':
+            return __('Each quarter', 'doneren-met-mollie');
+        case '12 months':
+            return __('Annually', 'doneren-met-mollie');
+    }
+
+    return $interval;
+}
+
 function dmm_get_currency_symbol($currency = 'EUR')
 {
     switch ($currency)

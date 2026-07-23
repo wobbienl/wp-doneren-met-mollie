@@ -3,8 +3,8 @@ Contributors: ndijkstra
 Donate link: https://wobbie.nl/doneren
 Tags: mollie,doneren,donate,ideal,recurring
 Requires at least: 6.0
-Tested up to: 6.9.4
-Stable tag: 2.10.11
+Tested up to: 7.0.2
+Stable tag: 2.11.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -59,6 +59,10 @@ Yes! The following shortcodes are available:
 1. You can also use the optional shortcode [doneren_met_mollie_total] to show the total raised money
 
 == Changelog ==
+
+= 2.11.0 - 23/07/2026 =
+* Added interval for recurring payments to export
+* Fixes incorrect redirect to iDEAL
 
 = 2.10.11 - 09/04/2026 =
 * Fix incorrect value in export for subscription status

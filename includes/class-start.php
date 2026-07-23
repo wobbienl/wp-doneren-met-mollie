@@ -518,8 +518,7 @@ class Dmm_Start
                             $payment->mode
                     ));
 
-                    wp_redirect($payment->_links->checkout->href);
-                    exit;
+                    $this->dmm_redirect_to_checkout($payment->_links->checkout->href);
                 }
 
             }
@@ -1095,5 +1094,36 @@ class Dmm_Start
     {
         return $this->wpdb->get_var("SELECT id FROM " . $this->wpdb->posts . " WHERE post_name = '" .
                                     esc_sql(sanitize_title_for_query($slug)) . "' AND post_type = 'page'");
+    }
+
+    /**
+     * Send the donor to the checkout URL returned by the Mollie API.
+     *
+     * The URL must be passed through byte for byte, so it is deliberately not sent through
+     * wp_redirect() or esc_url_raw(): an iDEAL 2 checkout URL contains a percent-encoded URL
+     * inside its own path (/transactions/https%3A%2F%2Ftx.ideal.nl/...) and anything hooked on
+     * the 'wp_redirect' filter that decodes or normalises the location turns that into
+     * /transactions/https://tx.ideal.nl/..., which iDEAL answers with a 404 TECHNICAL_ERROR.
+     *
+     * A 303 is used so the browser performs a GET on the checkout URL after the form POST,
+     * as Mollie requires.
+     *
+     * @param string $url
+     *
+     * @since 2.11.0
+     */
+    private function dmm_redirect_to_checkout($url)
+    {
+        if (!headers_sent()) {
+            nocache_headers();
+            header('Location: ' . $url, true, 303);
+            exit;
+        }
+
+        // The theme already started output, so fall back to a redirect in the browser.
+        echo '<script>window.location.replace(' . wp_json_encode($url) . ');</script>' .
+             '<noscript><p><a href="' . esc_attr($url) . '">' .
+             esc_html__('Continue to the payment page', 'doneren-met-mollie') . '</a></p></noscript>';
+        exit;
     }
 }

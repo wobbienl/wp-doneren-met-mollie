@@ -65,19 +65,7 @@ class Dmm_Subscriptions_Table extends WP_List_Table
     }
 
     function getInterval($interval) {
-        switch ($interval) {
-            case '1 month':
-                $return = esc_html__('Monthly', 'doneren-met-mollie');
-                break;
-            case '3 months':
-                $return = esc_html__('Each quarter', 'doneren-met-mollie');
-                break;
-            case '12 months':
-                $return = esc_html__('Annually', 'doneren-met-mollie');
-                break;
-        }
-
-        return $return;
+        return dmm_get_interval_label($interval);
     }
 
     function getStatus($status) {
@@ -115,7 +103,7 @@ class Dmm_Subscriptions_Table extends WP_List_Table
                 return dmm_get_currency_symbol($item['sub_currency']) . ' ' . number_format($item['sub_amount'], dmm_get_currencies($item['sub_currency']), ',', '');
 
             case 'sub_interval':
-                return $this->getInterval($item['sub_interval']);
+                return esc_html($this->getInterval($item['sub_interval']));
 
             case 'sub_status':
                 return $this->getStatus($item['sub_status']);

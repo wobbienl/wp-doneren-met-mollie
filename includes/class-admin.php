@@ -295,6 +295,7 @@ class Dmm_Admin {
             __('Status', 'doneren-met-mollie'),
             __('Payment method', 'doneren-met-mollie'),
             __('Recurring payment', 'doneren-met-mollie'),
+            __('Interval', 'doneren-met-mollie'),
             __('Donation ID', 'doneren-met-mollie'),
             __('Payment ID', 'doneren-met-mollie'),
         ));
@@ -302,15 +303,26 @@ class Dmm_Admin {
         $where = '';
         if (isset($_GET['subscription'])) {
             $subscription = sanitize_title_for_query($_GET['subscription']);
-            $where .= ' WHERE subscription_id="' . esc_sql($subscription) . '"';
+            $where .= ' WHERE d.subscription_id="' . esc_sql($subscription) . '"';
         }
 
         if (isset($_GET['search'])) {
             $search = sanitize_title_for_query($_GET['search']);
-            $where .= ($where ? ' AND' : ' WHERE') . ' (dm_name LIKE "%' . esc_sql($search) . '%" OR dm_email LIKE "%' . esc_sql($search) . '%" OR dm_company LIKE "%' . esc_sql($search) . '%" OR donation_id LIKE "%' . esc_sql($search) . '%" OR payment_id LIKE "%' . esc_sql($search) . '%")';
+            $where .= ($where ? ' AND' : ' WHERE') . ' (d.dm_name LIKE "%' . esc_sql($search) . '%" OR d.dm_email LIKE "%' . esc_sql($search) . '%" OR d.dm_company LIKE "%' . esc_sql($search) . '%" OR d.donation_id LIKE "%' . esc_sql($search) . '%" OR d.payment_id LIKE "%' . esc_sql($search) . '%")';
         }
 
-        $donations = $this->wpdb->get_results("SELECT * FROM " . DMM_TABLE_DONATIONS . $where . " ORDER BY time DESC");
+        // The interval lives on the subscription, so join it in. The subquery keeps that side at
+        // one row per subscription id, so a donation can never be exported twice: rows with an
+        // empty subscription id (created just before Mollie returns the id) would match every
+        // one-time donation, and a retried first-payment webhook can leave a duplicate id behind.
+        $donations = $this->wpdb->get_results("SELECT d.*, s.sub_interval FROM " . DMM_TABLE_DONATIONS . " d
+            LEFT JOIN (
+                SELECT subscription_id, MIN(sub_interval) AS sub_interval
+                FROM " . DMM_TABLE_SUBSCRIPTIONS . "
+                WHERE subscription_id != ''
+                GROUP BY subscription_id
+            ) s ON s.subscription_id = d.subscription_id" .
+            $where . " ORDER BY d.time DESC");
         foreach ($donations as $donation) {
             fputcsv($output, array(
                 $donation->time,
@@ -329,6 +341,7 @@ class Dmm_Admin {
                 $donation->dm_status,
                 $donation->payment_method,
                 $donation->subscription_id ? __('Yes', 'doneren-met-mollie') : __('No', 'doneren-met-mollie'),
+                $donation->sub_interval ? dmm_get_interval_label($donation->sub_interval) : '',
                 $donation->donation_id,
                 $donation->payment_id,
             ));
